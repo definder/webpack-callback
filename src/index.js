@@ -1,5 +1,14 @@
-var defineAction = require('redux-define').defineAction;
+const generateAction = require('./generateAction').default;
 
-const CREATE_TODO = defineAction('CREATE_TODO', ['ERROR']);
+const ct = generateAction();
 
-alert(CREATE_TODO.ERROR);
+const ct1 = generateAction();
+
+ct.setName('create');
+ct1.setName('update');
+
+const create = ct.setModel('App').getAsync();
+const update = ct1.setModel('App').getAsync();
+
+console.log(create);
+console.log(update);
