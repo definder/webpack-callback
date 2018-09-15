@@ -1,14 +1,8 @@
-const generateAction = require('./generateAction').default;
+import {load, setToCompare} from "./tests/test1";
+import {create, setField} from "./tests/test2";
 
-const ct = generateAction();
+console.log('import', load);
+console.log('import', setToCompare);
 
-const ct1 = generateAction();
-
-ct.setName('create');
-ct1.setName('update');
-
-const create = ct.setModel('App').getAsync();
-const update = ct1.setModel('App').getAsync();
-
-console.log(create);
-console.log(update);
+console.log('require', create);
+console.log('require', setField);

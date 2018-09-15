@@ -17,16 +17,18 @@ const config = {
                     {
                         loader: path.resolve(path.join(__dirname, 'loader.js')),
                         options: {}
-                    }
+                    },
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            presets: [
+                                '@babel/preset-env',
+                            ],
+                        }
+                    },
                 ]
             }
-        ]
-        // rules: [
-        //   {
-        //     test: /\.(js|jsx)$/,
-        //     use: 'babel-loader'
-        //   }
-        // ]
+        ],
     },
     plugins: [
         new UglifyJsPlugin({

@@ -1,9 +1,7 @@
 const getOptions = require('loader-utils').getOptions;
 const validateOptions = require('schema-utils');
-const astQuery = require('ast-query');
-const escodegen = require('escodegen');
-const acorn = require('acorn');
-const walk = require("acorn/dist/walk");
+const acorn = require('acorn-jsx/inject')(require('acorn-stage3'));
+const acornWalk  = require("acorn/dist/walk");
 const generateAction = require('../src/generateAction').default;
 
 const schema = {
@@ -14,9 +12,6 @@ const schema = {
         }
     }
 }
-
-//__defineAction('CREATE_TODO', ['ERROR'])
-//__defineAction('REMOVE_TODO', ['SUCCESS', 'ERROR'])
 
 function replaceDefineAction(source, replacString, insertableSource) {
     return source.replace(replacString, insertableSource)
@@ -43,9 +38,9 @@ function RemoveGenerateConstants() {
     this.initials = null
     this.calls = []
 
-    this.setInitials = (node) => {
+    this.setInitials = (node, name) => {
         this.initials = {
-            variable: null,
+            variable: name || null,
             position: RemoveGenerateConstants.setPosition(node.start, node.end)
         }
     }
@@ -73,10 +68,12 @@ function RemoveGenerateConstants() {
         let indexCall = false
         let nextCall = false
         this.calls.some((value, key) => {
+            // проверка на принадлежность метода к существующему выражению
             if(node.start === value.position.start){
                 indexCall = key
                 return true
             }
+            // проверка на принадлежность метода к существующему выражению и переопределение в новую переменную
             if(node.callee.object && node.callee.object.name === value.variable) {
                 indexCall = key
                 nextCall = true
@@ -111,7 +108,6 @@ function RemoveGenerateConstants() {
         })
         if(indexCall !== false) {
             this.calls[indexCall].variable = node.declarations[0].id.name
-            console.log(this.calls[indexCall].call)
             if(!this.calls[indexCall].isGetter) {
                 this.calls[indexCall].position = RemoveGenerateConstants.setPosition(node.start, node.end)
             }
@@ -134,7 +130,7 @@ module.exports = {
 
         const _RemoveGenerateConstants = new RemoveGenerateConstants()
 
-        walk.ancestor(acorn.parse(source), {
+        acornWalk.ancestor(acorn.parse(source, {sourceType: 'module'}), {
             VariableDeclaration(node) {
                 if (_RemoveGenerateConstants.initials) {
                     if(!_RemoveGenerateConstants.initials.variable) {
@@ -152,6 +148,11 @@ module.exports = {
             MemberExpression(node) {
                 if (!_RemoveGenerateConstants.initials && node.object.callee && node.object.callee.name === 'require' && node.object.arguments[0] && node.object.arguments[0].value.match(/generateAction/)) {
                     _RemoveGenerateConstants.setInitials(node) // Запись названия переменной функции констант
+                }
+            },
+            ImportDeclaration(node) {
+                if (!_RemoveGenerateConstants.initials && node.source && node.source.value.match(/generateAction/)) {
+                    _RemoveGenerateConstants.setInitials(node, node.specifiers[0].local.name) // Запись названия переменной функции констант
                 }
             },
         })
